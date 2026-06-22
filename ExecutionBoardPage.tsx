@@ -4,6 +4,7 @@ import { NavBar } from "./NavBar";
 import {
   addChildActivityForShiftDB,
   addShiftNoteDB,
+  setCompletionNoteDB,
   setCompletionStatusDB,
 } from "../dbHelpers";
 
@@ -102,14 +103,6 @@ export function ExecutionBoardPage({
     return topLevelParents[0]?.id ?? null;
   });
 
-  const firstLevelChildren = useMemo(() => {
-    if (selectedParentId === null) return [];
-
-    return shift.shiftActivities
-      .filter((activity) => activity.parentIdSnapshot === selectedParentId)
-      .sort((a, b) => a.sortOrderSnapshot - b.sortOrderSnapshot);
-  }, [shift.shiftActivities, selectedParentId]);
-
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
   const [noteText, setNoteText] = useState("");
   const [newChildName, setNewChildName] = useState("");
@@ -117,6 +110,14 @@ export function ExecutionBoardPage({
   const [taskNoteDrafts, setTaskNoteDrafts] = useState<Record<number, string>>(
     {}
   );
+
+  const firstLevelChildren = useMemo(() => {
+    if (selectedParentId === null) return [];
+
+    return shift.shiftActivities
+      .filter((activity) => activity.parentIdSnapshot === selectedParentId)
+      .sort((a, b) => a.sortOrderSnapshot - b.sortOrderSnapshot);
+  }, [shift.shiftActivities, selectedParentId]);
 
   useEffect(() => {
     if (firstLevelChildren.length === 0) {
@@ -142,7 +143,9 @@ export function ExecutionBoardPage({
   }, [shift.shiftActivities, selectedChildId]);
 
   const completionsByShiftActivityId = useMemo(() => {
-    return new Map(shift.completions.map((completion) => [completion.shiftActivityId, completion]));
+    return new Map(
+      shift.completions.map((completion) => [completion.shiftActivityId, completion])
+    );
   }, [shift.completions]);
 
   useEffect(() => {
@@ -150,9 +153,7 @@ export function ExecutionBoardPage({
       const next = { ...prev };
 
       for (const task of visibleTasks) {
-        if (!(task.id in next)) {
-          next[task.id] = completionsByShiftActivityId.get(task.id)?.note ?? "";
-        }
+        next[task.id] = prev[task.id] ?? completionsByShiftActivityId.get(task.id)?.note ?? "";
       }
 
       return next;
@@ -221,73 +222,18 @@ export function ExecutionBoardPage({
   };
 
   const saveTaskNote = (activity: ShiftActivity) => {
-    const draft = (taskNoteDrafts[activity.id] ?? "").trim();
-    const existing = completionsByShiftActivityId.get(activity.id);
-
-    if (!existing) {
-      if (!draft) return;
-
-      onCompleteActivity(shift.id, activity.id);
-      setTaskNoteDrafts((prev) => ({
-        ...prev,
-        [activity.id]: draft,
-      }));
-      return;
-    }
-
-    const next: DB = {
-      ...db,
-      shifts: db.shifts.map((entry) =>
-        entry.id !== shift.id
-          ? entry
-          : {
-              ...entry,
-              completions: entry.completions.map((completion) =>
-                completion.shiftActivityId === activity.id
-                  ? {
-                      ...completion,
-                      note: draft,
-                      timestamp: Date.now(),
-                    }
-                  : completion
-              ),
-            }
-      ),
-    };
-
+    const draft = taskNoteDrafts[activity.id] ?? "";
+    const next = setCompletionNoteDB(db, shift.id, activity, draft);
     setDB(next);
   };
 
   const clearTaskNote = (activity: ShiftActivity) => {
-    const existing = completionsByShiftActivityId.get(activity.id);
-
     setTaskNoteDrafts((prev) => ({
       ...prev,
       [activity.id]: "",
     }));
 
-    if (!existing) return;
-
-    const next: DB = {
-      ...db,
-      shifts: db.shifts.map((entry) =>
-        entry.id !== shift.id
-          ? entry
-          : {
-              ...entry,
-              completions: entry.completions.map((completion) =>
-                completion.shiftActivityId === activity.id
-                  ? {
-                      ...completion,
-                      note: "",
-                      timestamp: Date.now(),
-                    }
-                  : completion
-              ),
-            }
-      ),
-    };
-
+    const next = setCompletionNoteDB(db, shift.id, activity, "");
     setDB(next);
   };
 
