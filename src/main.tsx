@@ -3,11 +3,17 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles.css";
 
+declare global {
+  interface Window {
+    __SEED_DB__?: unknown;
+  }
+}
+
 const now = new Date();
 const date = now.toISOString().slice(0, 10);
 const createdAt = Date.now();
 
-(window as Window & { __SEED_DB__?: unknown }).__SEED_DB__ = {
+window.__SEED_DB__ = {
   version: 2,
   nextId: 500,
   activities: [
@@ -49,10 +55,8 @@ const createdAt = Date.now();
       shiftActivities: [
         { id: 201, activityId: 1, nameSnapshot: "Primär", colorSnapshot: "green", parentIdSnapshot: null, sortOrderSnapshot: 0 },
         { id: 202, activityId: 2, nameSnapshot: "Sekundär", colorSnapshot: "blue", parentIdSnapshot: null, sortOrderSnapshot: 1 },
-
         { id: 203, activityId: 3, nameSnapshot: "MO Start", colorSnapshot: "green", parentIdSnapshot: 201, sortOrderSnapshot: 0 },
         { id: 204, activityId: 4, nameSnapshot: "MO Ende", colorSnapshot: "red", parentIdSnapshot: 201, sortOrderSnapshot: 1 },
-
         { id: 205, activityId: 5, nameSnapshot: "Abnahme", colorSnapshot: "blue", parentIdSnapshot: 203, sortOrderSnapshot: 0 },
         { id: 206, activityId: 6, nameSnapshot: "SFA IDE", colorSnapshot: "orange", parentIdSnapshot: 203, sortOrderSnapshot: 1 },
         { id: 207, activityId: 7, nameSnapshot: "IDE vor Start", colorSnapshot: "purple", parentIdSnapshot: 203, sortOrderSnapshot: 2 },
@@ -60,15 +64,13 @@ const createdAt = Date.now();
         { id: 209, activityId: 9, nameSnapshot: "Leer Blister Prüfung", colorSnapshot: "blue", parentIdSnapshot: 203, sortOrderSnapshot: 4 },
         { id: 210, activityId: 10, nameSnapshot: "Kamera Test", colorSnapshot: "orange", parentIdSnapshot: 203, sortOrderSnapshot: 5 },
         { id: 211, activityId: 11, nameSnapshot: "ZP Zufuhr auf", colorSnapshot: "purple", parentIdSnapshot: 203, sortOrderSnapshot: 6 },
-
         { id: 212, activityId: 12, nameSnapshot: "ZP Zuführung schließen", colorSnapshot: "red", parentIdSnapshot: 204, sortOrderSnapshot: 0 },
         { id: 213, activityId: 13, nameSnapshot: "Blister Strang leerfahren", colorSnapshot: "orange", parentIdSnapshot: 204, sortOrderSnapshot: 1 },
         { id: 214, activityId: 14, nameSnapshot: "Blister Maschine stoppen", colorSnapshot: "red", parentIdSnapshot: 204, sortOrderSnapshot: 2 },
         { id: 215, activityId: 15, nameSnapshot: "Saugband hochfahren und entleeren", colorSnapshot: "orange", parentIdSnapshot: 204, sortOrderSnapshot: 3 },
         { id: 216, activityId: 16, nameSnapshot: "Chargeblöcke ausbauen", colorSnapshot: "purple", parentIdSnapshot: 204, sortOrderSnapshot: 4 },
-
         { id: 217, activityId: 21, nameSnapshot: "Sekundär Aufgabe 1", colorSnapshot: "teal", parentIdSnapshot: 202, sortOrderSnapshot: 0 },
-        { id: 218, activityId: 22, nameSnapshot: "Sekundär Aufgabe 2", colorSnapshot: "orange", parentIdSnapshot: 202, sortOrderSnapshot: 1 },
+        { id: 218, activityId: 22, nameSnapshot: "Sekundär Aufgabe 2", colorSnapshot: "orange", parentIdSnapshot: 202, sortOrderSnapshot: 1 }
       ],
       completions: [
         {
@@ -77,7 +79,7 @@ const createdAt = Date.now();
           status: "done",
           timestamp: createdAt - 1000 * 60 * 45,
           note: "",
-          imageData: null,
+          imageData: null
         },
         {
           id: 302,
@@ -85,7 +87,7 @@ const createdAt = Date.now();
           status: "blocked",
           timestamp: createdAt - 1000 * 60 * 30,
           note: "Warten auf Freigabe durch Vorarbeiter",
-          imageData: null,
+          imageData: null
         },
         {
           id: 303,
@@ -93,29 +95,29 @@ const createdAt = Date.now();
           status: "skipped",
           timestamp: createdAt - 1000 * 60 * 18,
           note: "",
-          imageData: null,
-        },
+          imageData: null
+        }
       ],
       notes: [
         {
           id: 401,
           text: "Materialbestand prüfen, wird knapp.",
           kind: "handover",
-          createdAt: createdAt - 1000 * 60 * 20,
+          createdAt: createdAt - 1000 * 60 * 20
         },
         {
           id: 402,
           text: "Kamera-Test heute verzögert gestartet.",
           kind: "warning",
-          createdAt: createdAt - 1000 * 60 * 10,
+          createdAt: createdAt - 1000 * 60 * 10
         },
         {
           id: 403,
           text: "Linie läuft stabil seit 06:40.",
           kind: "info",
-          createdAt: createdAt - 1000 * 60 * 5,
-        },
-      ],
+          createdAt: createdAt - 1000 * 60 * 5
+        }
+      ]
     },
     {
       id: 102,
@@ -126,7 +128,7 @@ const createdAt = Date.now();
       createdAt: createdAt - 1000 * 60 * 60 * 8,
       shiftActivities: [],
       completions: [],
-      notes: [],
+      notes: []
     },
     {
       id: 103,
@@ -137,9 +139,9 @@ const createdAt = Date.now();
       createdAt: createdAt - 1000 * 60 * 60 * 16,
       shiftActivities: [],
       completions: [],
-      notes: [],
-    },
-  ],
+      notes: []
+    }
+  ]
 };
 
 if (!window.location.hash) {
