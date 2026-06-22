@@ -9,5 +9,5 @@
     "allowSyntheticDefaultImports": true,
     "noEmit": true
   },
-  "include": ["./vite.config.js"]
+  "include": ["vite.config.*"]
 }
