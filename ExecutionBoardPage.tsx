@@ -1,10 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import type {
-  CompletionStatus,
-  DB,
-  Shift,
-  ShiftActivity,
-} from "../types";
+import type { CompletionStatus, DB, Shift, ShiftActivity } from "../types";
 import { NavBar } from "./NavBar";
 import {
   addChildActivityForShiftDB,
@@ -99,7 +94,7 @@ export function ExecutionBoardPage({
 
   const topLevelParents = useMemo(() => {
     return shift.shiftActivities
-      .filter((a) => a.parentIdSnapshot === null)
+      .filter((activity) => activity.parentIdSnapshot === null)
       .sort((a, b) => a.sortOrderSnapshot - b.sortOrderSnapshot);
   }, [shift.shiftActivities]);
 
@@ -109,8 +104,9 @@ export function ExecutionBoardPage({
 
   const firstLevelChildren = useMemo(() => {
     if (selectedParentId === null) return [];
+
     return shift.shiftActivities
-      .filter((a) => a.parentIdSnapshot === selectedParentId)
+      .filter((activity) => activity.parentIdSnapshot === selectedParentId)
       .sort((a, b) => a.sortOrderSnapshot - b.sortOrderSnapshot);
   }, [shift.shiftActivities, selectedParentId]);
 
@@ -139,13 +135,14 @@ export function ExecutionBoardPage({
 
   const visibleTasks = useMemo(() => {
     if (selectedChildId === null) return [];
+
     return shift.shiftActivities
-      .filter((a) => a.parentIdSnapshot === selectedChildId)
+      .filter((activity) => activity.parentIdSnapshot === selectedChildId)
       .sort((a, b) => a.sortOrderSnapshot - b.sortOrderSnapshot);
   }, [shift.shiftActivities, selectedChildId]);
 
   const completionsByShiftActivityId = useMemo(() => {
-    return new Map(shift.completions.map((c) => [c.shiftActivityId, c]));
+    return new Map(shift.completions.map((completion) => [completion.shiftActivityId, completion]));
   }, [shift.completions]);
 
   useEffect(() => {
@@ -154,8 +151,7 @@ export function ExecutionBoardPage({
 
       for (const task of visibleTasks) {
         if (!(task.id in next)) {
-          next[task.id] =
-            completionsByShiftActivityId.get(task.id)?.note ?? "";
+          next[task.id] = completionsByShiftActivityId.get(task.id)?.note ?? "";
         }
       }
 
@@ -164,10 +160,10 @@ export function ExecutionBoardPage({
   }, [visibleTasks, completionsByShiftActivityId]);
 
   const selectedParent =
-    topLevelParents.find((p) => p.id === selectedParentId) ?? null;
+    topLevelParents.find((parent) => parent.id === selectedParentId) ?? null;
 
   const selectedChild =
-    firstLevelChildren.find((c) => c.id === selectedChildId) ?? null;
+    firstLevelChildren.find((child) => child.id === selectedChildId) ?? null;
 
   const parentThemeStyle = useMemo(
     () => getParentTheme(selectedParent?.nameSnapshot),
@@ -177,19 +173,22 @@ export function ExecutionBoardPage({
   const totalLeafTasks = useMemo(() => {
     const parentIds = new Set(
       shift.shiftActivities
-        .map((a) => a.parentIdSnapshot)
-        .filter((v): v is number => v !== null)
+        .map((activity) => activity.parentIdSnapshot)
+        .filter((value): value is number => value !== null)
     );
 
-    return shift.shiftActivities.filter((a) => !parentIds.has(a.id)).length;
+    return shift.shiftActivities.filter((activity) => !parentIds.has(activity.id))
+      .length;
   }, [shift.shiftActivities]);
 
-  const doneCount = shift.completions.filter((c) => c.status === "done").length;
+  const doneCount = shift.completions.filter(
+    (completion) => completion.status === "done"
+  ).length;
   const blockedCount = shift.completions.filter(
-    (c) => c.status === "blocked"
+    (completion) => completion.status === "blocked"
   ).length;
   const skippedCount = shift.completions.filter(
-    (c) => c.status === "skipped"
+    (completion) => completion.status === "skipped"
   ).length;
 
   const selectedChildStats = useMemo(() => {
@@ -227,25 +226,30 @@ export function ExecutionBoardPage({
 
     if (!existing) {
       if (!draft) return;
+
       onCompleteActivity(shift.id, activity.id);
+      setTaskNoteDrafts((prev) => ({
+        ...prev,
+        [activity.id]: draft,
+      }));
       return;
     }
 
     const next: DB = {
       ...db,
-      shifts: db.shifts.map((s) =>
-        s.id !== shift.id
-          ? s
+      shifts: db.shifts.map((entry) =>
+        entry.id !== shift.id
+          ? entry
           : {
-              ...s,
-              completions: s.completions.map((c) =>
-                c.shiftActivityId === activity.id
+              ...entry,
+              completions: entry.completions.map((completion) =>
+                completion.shiftActivityId === activity.id
                   ? {
-                      ...c,
+                      ...completion,
                       note: draft,
                       timestamp: Date.now(),
                     }
-                  : c
+                  : completion
               ),
             }
       ),
@@ -257,25 +261,28 @@ export function ExecutionBoardPage({
   const clearTaskNote = (activity: ShiftActivity) => {
     const existing = completionsByShiftActivityId.get(activity.id);
 
-    setTaskNoteDrafts((prev) => ({ ...prev, [activity.id]: "" }));
+    setTaskNoteDrafts((prev) => ({
+      ...prev,
+      [activity.id]: "",
+    }));
 
     if (!existing) return;
 
     const next: DB = {
       ...db,
-      shifts: db.shifts.map((s) =>
-        s.id !== shift.id
-          ? s
+      shifts: db.shifts.map((entry) =>
+        entry.id !== shift.id
+          ? entry
           : {
-              ...s,
-              completions: s.completions.map((c) =>
-                c.shiftActivityId === activity.id
+              ...entry,
+              completions: entry.completions.map((completion) =>
+                completion.shiftActivityId === activity.id
                   ? {
-                      ...c,
+                      ...completion,
                       note: "",
                       timestamp: Date.now(),
                     }
-                  : c
+                  : completion
               ),
             }
       ),
@@ -286,6 +293,7 @@ export function ExecutionBoardPage({
 
   const addShiftNote = (kind: Shift["notes"][number]["kind"]) => {
     const next = addShiftNoteDB(db, shift.id, noteText, kind);
+
     if (next !== db) {
       setDB(next);
       setNoteText("");
@@ -296,12 +304,10 @@ export function ExecutionBoardPage({
     const label = newChildName.trim();
     if (!label || !selectedParent) return;
 
-    const parentActivityId = selectedParent.activityId;
-
     const { db: next, newShiftActivity } = addChildActivityForShiftDB({
       db,
       shiftId: shift.id,
-      parentActivityId,
+      parentActivityId: selectedParent.activityId,
       label,
     });
 
@@ -316,12 +322,10 @@ export function ExecutionBoardPage({
     const label = newTaskName.trim();
     if (!label || !selectedChild) return;
 
-    const parentActivityId = selectedChild.activityId;
-
     const { db: next } = addChildActivityForShiftDB({
       db,
       shiftId: shift.id,
-      parentActivityId,
+      parentActivityId: selectedChild.activityId,
       label,
     });
 
@@ -343,7 +347,9 @@ export function ExecutionBoardPage({
                 {shift.operator} · {shift.line}
               </p>
             </div>
+
             <div className="spacer" />
+
             <button className="btn-ghost" onClick={onBack}>
               ← Zurück
             </button>
@@ -383,6 +389,7 @@ export function ExecutionBoardPage({
             <div className="parent-list">
               {topLevelParents.map((parent) => {
                 const isSecondary = parent.nameSnapshot === "Sekundär";
+
                 const pillStyle = {
                   ["--pill-accent" as string]: isSecondary ? "#89D329" : "#00BCFF",
                   ["--pill-accent-soft" as string]: isSecondary
@@ -398,10 +405,8 @@ export function ExecutionBoardPage({
                     key={parent.id}
                     type="button"
                     style={pillStyle}
-                    className={`parent-pill ${
-                      selectedParentId === parent.id
-                        ? "parent-pill--active contextual-pill"
-                        : "contextual-pill"
+                    className={`parent-pill contextual-pill ${
+                      selectedParentId === parent.id ? "parent-pill--active" : ""
                     }`}
                     onClick={() => {
                       setSelectedParentId(parent.id);
@@ -422,15 +427,17 @@ export function ExecutionBoardPage({
                 Füge einen neuen Unterbereich unter dem gewählten Hauptbereich
                 hinzu.
               </p>
+
               <div className="field" style={{ marginTop: 8 }}>
                 <input
                   className="input contextual-input"
                   type="text"
                   value={newChildName}
-                  onChange={(e) => setNewChildName(e.target.value)}
+                  onChange={(event) => setNewChildName(event.target.value)}
                   placeholder="z. B. MO Zwischenprüfung"
                 />
               </div>
+
               <div className="new-shift-actions" style={{ marginTop: 8 }}>
                 <button
                   type="button"
@@ -461,10 +468,8 @@ export function ExecutionBoardPage({
                     <button
                       key={child.id}
                       type="button"
-                      className={`parent-pill ${
-                        selectedChildId === child.id
-                          ? "parent-pill--active contextual-child-pill"
-                          : "contextual-child-pill"
+                      className={`parent-pill contextual-child-pill ${
+                        selectedChildId === child.id ? "parent-pill--active" : ""
                       }`}
                       onClick={() => setSelectedChildId(child.id)}
                     >
@@ -499,12 +504,14 @@ export function ExecutionBoardPage({
                     {selectedChildStats.percent}%)
                   </span>
                 </div>
+
                 <div className="task-progress-bar">
                   <div
                     className="task-progress-bar-fill"
                     style={{ width: `${selectedChildStats.percent}%` }}
                   />
                 </div>
+
                 <div className="task-progress-meta">
                   <span>Offen: {selectedChildStats.open}</span>
                   <span>Blockiert: {selectedChildStats.blocked}</span>
@@ -520,16 +527,18 @@ export function ExecutionBoardPage({
               <p className="card-subtitle">
                 Füge eine neue Aufgabe unter dem gewählten Unterbereich hinzu.
               </p>
+
               <div className="field" style={{ marginTop: 8 }}>
                 <input
                   className="input contextual-input"
                   type="text"
                   value={newTaskName}
-                  onChange={(e) => setNewTaskName(e.target.value)}
+                  onChange={(event) => setNewTaskName(event.target.value)}
                   placeholder="z. B. Leerblister-Kontrolle"
                   disabled={!selectedChild}
                 />
               </div>
+
               <div className="new-shift-actions" style={{ marginTop: 8 }}>
                 <button
                   type="button"
@@ -554,10 +563,14 @@ export function ExecutionBoardPage({
                   const completion = completionsByShiftActivityId.get(task.id);
 
                   return (
-                    <div key={task.id} className="shift-card task-card contextual-task-card">
+                    <div
+                      key={task.id}
+                      className="shift-card task-card contextual-task-card"
+                    >
                       <div className="shift-meta task-meta">
                         <div className="task-topline">
                           <div className="shift-date">{task.nameSnapshot}</div>
+
                           <div
                             className={`status-badge ${
                               completion ? `status-${completion.status}` : "status-open"
@@ -569,7 +582,9 @@ export function ExecutionBoardPage({
 
                         <div className="shift-sub">
                           {completion
-                            ? `Zuletzt geändert: ${formatTimestamp(completion.timestamp)}`
+                            ? `Zuletzt geändert: ${formatTimestamp(
+                                completion.timestamp
+                              )}`
                             : "Noch offen"}
                         </div>
 
@@ -589,7 +604,9 @@ export function ExecutionBoardPage({
                           <button
                             type="button"
                             className={`btn-ghost task-status-btn contextual-ghost-btn ${
-                              completion?.status === "blocked" ? "is-active is-blocked" : ""
+                              completion?.status === "blocked"
+                                ? "is-active is-blocked"
+                                : ""
                             }`}
                             onClick={() => saveStatus(task, "blocked")}
                           >
@@ -601,7 +618,9 @@ export function ExecutionBoardPage({
                           <button
                             type="button"
                             className={`btn-ghost task-status-btn contextual-ghost-btn ${
-                              completion?.status === "skipped" ? "is-active is-skipped" : ""
+                              completion?.status === "skipped"
+                                ? "is-active is-skipped"
+                                : ""
                             }`}
                             onClick={() => saveStatus(task, "skipped")}
                           >
@@ -615,15 +634,16 @@ export function ExecutionBoardPage({
                           <label className="label" htmlFor={`task-note-${task.id}`}>
                             Aufgabennotiz
                           </label>
+
                           <textarea
                             id={`task-note-${task.id}`}
                             className="input textarea task-note-textarea contextual-input"
                             rows={3}
                             value={taskNoteDrafts[task.id] ?? ""}
-                            onChange={(e) =>
+                            onChange={(event) =>
                               setTaskNoteDrafts((prev) => ({
                                 ...prev,
-                                [task.id]: e.target.value,
+                                [task.id]: event.target.value,
                               }))
                             }
                             placeholder="Grund für Blockierung, Beobachtung, Übergabehinweis ..."
@@ -672,11 +692,12 @@ export function ExecutionBoardPage({
             <label className="label" htmlFor="shift-note">
               Neue Notiz
             </label>
+
             <textarea
               id="shift-note"
               className="input textarea"
               value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
+              onChange={(event) => setNoteText(event.target.value)}
               rows={4}
               placeholder="Zum Beispiel: Material knapp, Kamera geprüft, Linie wartet auf Freigabe ..."
             />
@@ -729,9 +750,11 @@ export function ExecutionBoardPage({
                           ? "Warnung"
                           : "Info"}
                       </div>
+
                       <div className="shift-sub">
                         {formatTimestamp(note.createdAt)}
                       </div>
+
                       <div className="shift-sub">{note.text}</div>
                     </div>
                   </div>
