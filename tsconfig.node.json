@@ -1,4 +1,3 @@
-
 {
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
@@ -10,5 +9,5 @@
     "allowSyntheticDefaultImports": true,
     "noEmit": true
   },
-  "include": ["vite.config.js"]
+  "include": ["./vite.config.js"]
 }
