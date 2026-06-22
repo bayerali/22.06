@@ -9,7 +9,6 @@ import { NavBar } from "./NavBar";
 import {
   addChildActivityForShiftDB,
   addShiftNoteDB,
-  setCompletionNoteDB,
   setCompletionStatusDB,
 } from "../dbHelpers";
 
@@ -68,6 +67,26 @@ function statusLabel(status: CompletionStatus): string {
   }
 }
 
+function getParentTheme(parentName?: string): React.CSSProperties {
+  if (parentName === "Sekundär") {
+    return {
+      ["--context-accent" as string]: "#89D329",
+      ["--context-accent-strong" as string]: "#5FAE1F",
+      ["--context-accent-soft" as string]: "rgba(137, 211, 41, 0.14)",
+      ["--context-accent-border" as string]: "rgba(137, 211, 41, 0.42)",
+      ["--context-accent-shadow" as string]: "rgba(137, 211, 41, 0.22)",
+    };
+  }
+
+  return {
+    ["--context-accent" as string]: "#00BCFF",
+    ["--context-accent-strong" as string]: "#007CC2",
+    ["--context-accent-soft" as string]: "rgba(0, 188, 255, 0.14)",
+    ["--context-accent-border" as string]: "rgba(0, 188, 255, 0.42)",
+    ["--context-accent-shadow" as string]: "rgba(0, 188, 255, 0.22)",
+  };
+}
+
 export function ExecutionBoardPage({
   db,
   setDB,
@@ -99,7 +118,9 @@ export function ExecutionBoardPage({
   const [noteText, setNoteText] = useState("");
   const [newChildName, setNewChildName] = useState("");
   const [newTaskName, setNewTaskName] = useState("");
-  const [taskNoteDrafts, setTaskNoteDrafts] = useState<Record<number, string>>({});
+  const [taskNoteDrafts, setTaskNoteDrafts] = useState<Record<number, string>>(
+    {}
+  );
 
   useEffect(() => {
     if (firstLevelChildren.length === 0) {
@@ -147,6 +168,11 @@ export function ExecutionBoardPage({
 
   const selectedChild =
     firstLevelChildren.find((c) => c.id === selectedChildId) ?? null;
+
+  const parentThemeStyle = useMemo(
+    () => getParentTheme(selectedParent?.nameSnapshot),
+    [selectedParent]
+  );
 
   const totalLeafTasks = useMemo(() => {
     const parentIds = new Set(
@@ -196,15 +222,66 @@ export function ExecutionBoardPage({
   };
 
   const saveTaskNote = (activity: ShiftActivity) => {
-    const draft = taskNoteDrafts[activity.id] ?? "";
-    const next = setCompletionNoteDB(db, shift.id, activity, draft);
+    const draft = (taskNoteDrafts[activity.id] ?? "").trim();
+    const existing = completionsByShiftActivityId.get(activity.id);
+
+    if (!existing) {
+      if (!draft) return;
+      onCompleteActivity(shift.id, activity.id);
+      return;
+    }
+
+    const next: DB = {
+      ...db,
+      shifts: db.shifts.map((s) =>
+        s.id !== shift.id
+          ? s
+          : {
+              ...s,
+              completions: s.completions.map((c) =>
+                c.shiftActivityId === activity.id
+                  ? {
+                      ...c,
+                      note: draft,
+                      timestamp: Date.now(),
+                    }
+                  : c
+              ),
+            }
+      ),
+    };
+
     setDB(next);
   };
 
   const clearTaskNote = (activity: ShiftActivity) => {
-    const next = setCompletionNoteDB(db, shift.id, activity, "");
-    setDB(next);
+    const existing = completionsByShiftActivityId.get(activity.id);
+
     setTaskNoteDrafts((prev) => ({ ...prev, [activity.id]: "" }));
+
+    if (!existing) return;
+
+    const next: DB = {
+      ...db,
+      shifts: db.shifts.map((s) =>
+        s.id !== shift.id
+          ? s
+          : {
+              ...s,
+              completions: s.completions.map((c) =>
+                c.shiftActivityId === activity.id
+                  ? {
+                      ...c,
+                      note: "",
+                      timestamp: Date.now(),
+                    }
+                  : c
+              ),
+            }
+      ),
+    };
+
+    setDB(next);
   };
 
   const addShiftNote = (kind: Shift["notes"][number]["kind"]) => {
@@ -287,37 +364,54 @@ export function ExecutionBoardPage({
           <article className="kpi-card">
             <div className="kpi-label">Offen / Blockiert / Übersprungen</div>
             <div className="kpi-value">
-              {Math.max(totalLeafTasks - doneCount - blockedCount - skippedCount, 0)}{" "}
+              {Math.max(
+                totalLeafTasks - doneCount - blockedCount - skippedCount,
+                0
+              )}{" "}
               / {blockedCount} / {skippedCount}
             </div>
           </article>
         </section>
 
-        <section className="dashboard-grid">
-          <article className="card">
+        <section className="dashboard-grid" style={parentThemeStyle}>
+          <article className="card contextual-card">
             <h2 className="card-title">Bereiche</h2>
             <p className="card-subtitle">
               Wähle Primär oder Sekundär als Hauptbereich.
             </p>
 
             <div className="parent-list">
-              {topLevelParents.map((parent) => (
-                <button
-                  key={parent.id}
-                  type="button"
-                  className={`parent-pill ${
-                    selectedParentId === parent.id
-                      ? "parent-pill--active"
-                      : ""
-                  }`}
-                  onClick={() => {
-                    setSelectedParentId(parent.id);
-                    setSelectedChildId(null);
-                  }}
-                >
-                  {parent.nameSnapshot}
-                </button>
-              ))}
+              {topLevelParents.map((parent) => {
+                const isSecondary = parent.nameSnapshot === "Sekundär";
+                const pillStyle = {
+                  ["--pill-accent" as string]: isSecondary ? "#89D329" : "#00BCFF",
+                  ["--pill-accent-soft" as string]: isSecondary
+                    ? "rgba(137, 211, 41, 0.14)"
+                    : "rgba(0, 188, 255, 0.14)",
+                  ["--pill-accent-border" as string]: isSecondary
+                    ? "rgba(137, 211, 41, 0.42)"
+                    : "rgba(0, 188, 255, 0.42)",
+                } as React.CSSProperties;
+
+                return (
+                  <button
+                    key={parent.id}
+                    type="button"
+                    style={pillStyle}
+                    className={`parent-pill ${
+                      selectedParentId === parent.id
+                        ? "parent-pill--active contextual-pill"
+                        : "contextual-pill"
+                    }`}
+                    onClick={() => {
+                      setSelectedParentId(parent.id);
+                      setSelectedChildId(null);
+                    }}
+                  >
+                    {parent.nameSnapshot}
+                  </button>
+                );
+              })}
             </div>
 
             <div style={{ marginTop: 16 }}>
@@ -330,7 +424,7 @@ export function ExecutionBoardPage({
               </p>
               <div className="field" style={{ marginTop: 8 }}>
                 <input
-                  className="input"
+                  className="input contextual-input"
                   type="text"
                   value={newChildName}
                   onChange={(e) => setNewChildName(e.target.value)}
@@ -340,7 +434,7 @@ export function ExecutionBoardPage({
               <div className="new-shift-actions" style={{ marginTop: 8 }}>
                 <button
                   type="button"
-                  className="btn-ghost"
+                  className="btn-ghost contextual-ghost-btn"
                   onClick={addFirstLevelChild}
                   disabled={!selectedParent || !newChildName.trim()}
                 >
@@ -369,8 +463,8 @@ export function ExecutionBoardPage({
                       type="button"
                       className={`parent-pill ${
                         selectedChildId === child.id
-                          ? "parent-pill--active"
-                          : ""
+                          ? "parent-pill--active contextual-child-pill"
+                          : "contextual-child-pill"
                       }`}
                       onClick={() => setSelectedChildId(child.id)}
                     >
@@ -386,7 +480,7 @@ export function ExecutionBoardPage({
             </div>
           </article>
 
-          <article className="card">
+          <article className="card contextual-card">
             <h2 className="card-title">
               {selectedChild ? selectedChild.nameSnapshot : "Aufgaben"}
             </h2>
@@ -397,11 +491,12 @@ export function ExecutionBoardPage({
             </p>
 
             {selectedChild ? (
-              <div className="task-progress-card">
+              <div className="task-progress-card contextual-surface">
                 <div className="task-progress-head">
                   <span className="task-progress-title">Fortschritt</span>
                   <span className="task-progress-value">
-                    {selectedChildStats.done} / {selectedChildStats.total} erledigt ({selectedChildStats.percent}%)
+                    {selectedChildStats.done} / {selectedChildStats.total} erledigt (
+                    {selectedChildStats.percent}%)
                   </span>
                 </div>
                 <div className="task-progress-bar">
@@ -427,7 +522,7 @@ export function ExecutionBoardPage({
               </p>
               <div className="field" style={{ marginTop: 8 }}>
                 <input
-                  className="input"
+                  className="input contextual-input"
                   type="text"
                   value={newTaskName}
                   onChange={(e) => setNewTaskName(e.target.value)}
@@ -438,7 +533,7 @@ export function ExecutionBoardPage({
               <div className="new-shift-actions" style={{ marginTop: 8 }}>
                 <button
                   type="button"
-                  className="btn-ghost"
+                  className="btn-ghost contextual-ghost-btn"
                   onClick={addSecondLevelTask}
                   disabled={!selectedChild || !newTaskName.trim()}
                 >
@@ -459,7 +554,7 @@ export function ExecutionBoardPage({
                   const completion = completionsByShiftActivityId.get(task.id);
 
                   return (
-                    <div key={task.id} className="shift-card task-card">
+                    <div key={task.id} className="shift-card task-card contextual-task-card">
                       <div className="shift-meta task-meta">
                         <div className="task-topline">
                           <div className="shift-date">{task.nameSnapshot}</div>
@@ -493,7 +588,7 @@ export function ExecutionBoardPage({
 
                           <button
                             type="button"
-                            className={`btn-ghost task-status-btn ${
+                            className={`btn-ghost task-status-btn contextual-ghost-btn ${
                               completion?.status === "blocked" ? "is-active is-blocked" : ""
                             }`}
                             onClick={() => saveStatus(task, "blocked")}
@@ -505,7 +600,7 @@ export function ExecutionBoardPage({
 
                           <button
                             type="button"
-                            className={`btn-ghost task-status-btn ${
+                            className={`btn-ghost task-status-btn contextual-ghost-btn ${
                               completion?.status === "skipped" ? "is-active is-skipped" : ""
                             }`}
                             onClick={() => saveStatus(task, "skipped")}
@@ -522,7 +617,7 @@ export function ExecutionBoardPage({
                           </label>
                           <textarea
                             id={`task-note-${task.id}`}
-                            className="input textarea task-note-textarea"
+                            className="input textarea task-note-textarea contextual-input"
                             rows={3}
                             value={taskNoteDrafts[task.id] ?? ""}
                             onChange={(e) =>
@@ -538,7 +633,7 @@ export function ExecutionBoardPage({
                         <div className="task-note-actions">
                           <button
                             type="button"
-                            className="btn-ghost"
+                            className="btn-ghost contextual-ghost-btn"
                             onClick={() => saveTaskNote(task)}
                           >
                             Notiz speichern
@@ -546,7 +641,7 @@ export function ExecutionBoardPage({
 
                           <button
                             type="button"
-                            className="btn-ghost"
+                            className="btn-ghost contextual-ghost-btn"
                             onClick={() => clearTaskNote(task)}
                           >
                             Notiz leeren
@@ -554,7 +649,7 @@ export function ExecutionBoardPage({
                         </div>
 
                         {completion?.note ? (
-                          <div className="task-note-preview">
+                          <div className="task-note-preview contextual-surface">
                             Gespeicherte Notiz: {completion.note}
                           </div>
                         ) : null}
