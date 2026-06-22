@@ -11,8 +11,8 @@ const createdAt = Date.now();
   version: 2,
   nextId: 500,
   activities: [
-    { id: 1, name: "Primär", color: "green", sortOrder: 0, parentId: null },
-    { id: 2, name: "Sekundär", color: "blue", sortOrder: 1, parentId: null },
+    { id: 1, name: "Primär", color: "blue", sortOrder: 0, parentId: null },
+    { id: 2, name: "Sekundär", color: "green", sortOrder: 1, parentId: null },
 
     { id: 3, name: "MO Start", color: "green", sortOrder: 0, parentId: 1 },
     { id: 4, name: "MO Ende", color: "red", sortOrder: 1, parentId: 1 },
