@@ -1,0 +1,128 @@
+.task-progress-card {
+  margin: 14px 0 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.task-progress-head,
+.task-progress-meta,
+.task-topline,
+.task-actions,
+.task-note-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.task-progress-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.task-progress-value {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.task-progress-bar {
+  margin-top: 10px;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.task-progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--green), var(--cyan));
+  transition: width 0.2s ease;
+}
+
+.task-progress-meta {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.task-meta {
+  width: 100%;
+}
+
+.task-topline {
+  align-items: flex-start;
+}
+
+.status-badge {
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.status-open {
+  background: rgba(148, 163, 184, 0.14);
+  color: var(--text-soft);
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+.status-done {
+  background: rgba(34, 197, 94, 0.16);
+  color: #bbf7d0;
+  border-color: rgba(34, 197, 94, 0.34);
+}
+
+.status-blocked {
+  background: rgba(251, 146, 60, 0.16);
+  color: #fed7aa;
+  border-color: rgba(251, 146, 60, 0.34);
+}
+
+.status-skipped {
+  background: rgba(167, 139, 250, 0.16);
+  color: #ddd6fe;
+  border-color: rgba(167, 139, 250, 0.34);
+}
+
+.task-status-btn.is-active {
+  border-color: rgba(34, 211, 238, 0.7);
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.14);
+}
+
+.task-status-btn.is-blocked {
+  border-color: rgba(251, 146, 60, 0.45);
+}
+
+.task-status-btn.is-skipped {
+  border-color: rgba(167, 139, 250, 0.45);
+}
+
+.task-note-field {
+  margin-top: 8px;
+}
+
+.task-note-textarea {
+  min-height: 88px;
+}
+
+.task-note-actions {
+  margin-top: 8px;
+  justify-content: flex-start;
+}
+
+.task-note-preview {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
